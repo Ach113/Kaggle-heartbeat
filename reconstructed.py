@@ -3,32 +3,10 @@
 from tensorflow.keras.models import load_model
 import tensorflow.keras as keras
 
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score
 
 import numpy as np
 import pandas as pd
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-def plot_confusion_matrix(y_true, y_pred, accuracy):
-    df = pd.DataFrame(data=confusion_matrix(y_true, y_pred),
-                      columns = ['N', 'S', 'V', 'F', 'Q'],
-                      index = ['N', 'S', 'V', 'F', 'Q'])
-    plt.figure(figsize=(5,4))
-    sns.heatmap(df, annot=True, fmt='g')
-    plt.title('CNN classifier \nAccuracy: {0:.3f}'.format(accuracy))
-    plt.ylabel('Actual')
-    plt.xlabel('Predicted')
-    plt.show()
-
-def evaluate_model(y_pred, y_true):
-    acc = accuracy_score(y_true, y_pred)
-    plot_confusion_matrix(y_true, y_pred, acc)
-    print(classification_report(y_true, y_pred))
-
-saved_model = load_model("Saved/cnn.h5")
-test = pd.read_csv("mitbih_test.csv")
 
 def relu(x):
     return x * (x > 0)
@@ -41,6 +19,7 @@ def get_filter():
     W = saved_model.get_weights()
     return np.array(W[0])
 
+### Works only for tensors of shape (n, m, 1)
 def conv_1d(data, filters, kernel_size, activation='relu'):
     assert len(data.shape) == 3, "Expected input to be 3 dimensional"
     N = data.shape[0]
@@ -158,6 +137,9 @@ def reconstructed_model(Input):
 
 # evaluate model
 
+saved_model = load_model("Saved/cnn.h5")
+test = pd.read_csv("mitbih_test.csv")
+
 X_test = test.iloc[:, :-1].values
 y = test.iloc[:, -1].values
 
@@ -166,12 +148,11 @@ X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
 y_test = keras.utils.to_categorical(y)
 
 print("> starting prediction")
-print(f"> Validation data shape: {X_test.shape}")
-
 prediction = reconstructed_model(X_test)
 print("> Prediction complete")
 
 y_pred = [np.argmax(x) for x in prediction]
 y_dense = [np.argmax(x) for x in y_test]
 
-evaluate_model(y_pred, y_dense)
+score = accuracy_score(y_dense, y_pred) # 0.956 accuracy, same as Keras model
+print(classification_report(y_dense, y_pred))
