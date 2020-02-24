@@ -86,43 +86,32 @@ def flatten(layer):
     print("> Flattening complete")
     return np.array(matrix)
 
-def dense1(layer, activation='relu'):
+def dense1(layer):
     W = saved_model.get_weights()[1]
     b = saved_model.get_weights()[2]
     
     x = np.matmul(layer, W) + b
     print("> Dense1 complete")
-    
-    if activation=='relu':
-        return relu(x)
-    
-    return x
 
-def dense2(layer, activation='relu'):
+    return relu(x)
+
+def dense2(layer):
     W = saved_model.get_weights()[3]
     b = saved_model.get_weights()[4]
     
     x = np.matmul(layer, W) + b
-    print("> Dense2 complete")
+    print("> Dense2 complete")  
     
-    if activation=='relu':
-        return relu(x)
+    return relu(x)
     
-    return x
-    
-def dense3(layer, activation='relu'):
+def dense3(layer, activation='softmax'):
     W = saved_model.get_weights()[5]
     b = saved_model.get_weights()[6]
     
     x = np.matmul(layer, W) + b
     print("> Dense3 complete")
     
-    if activation=='relu':
-        return relu(x)
-    if activation=='softmax':
-        return softmax(x)
-    
-    return x
+    return softmax(x)
 
 def reconstructed_model(Input):
     x = conv_1d(Input, filters=10, kernel_size=3)
@@ -130,9 +119,8 @@ def reconstructed_model(Input):
     x = flatten(x)
     x = dense1(x)
     x = dense2(x)
-    x = dense3(x, activation='softmax')
+    x = dense3(x)
     
-    print("> Prediction complete")
     return x
 
 # evaluate model
