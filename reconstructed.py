@@ -19,7 +19,7 @@ def get_filter():
     W = saved_model.get_weights()
     return np.array(W[0])
 
-### Works only for tensors of shape (n, m, 1)
+### Note: works only for tensors of shape (n, m, 1)
 def conv_1d(data, filters, kernel_size, activation='relu'):
     assert len(data.shape) == 3, "Expected input to be 3 dimensional"
     N = data.shape[0]
@@ -27,17 +27,13 @@ def conv_1d(data, filters, kernel_size, activation='relu'):
     global channels
     channels = list()
     for f in range(filters):
-        print("> filter no. ", f+1)
         filter_ = get_filter()[:,:,f].T[0]
         matrix = list()
         for n in range(N): # iterate over rows
             row = list()
-            for m in range(M): # iterate over columns
-                try:
-                    conv = [data[n][m][0] * filter_[0], data[n][m+1][0]*filter_[1], data[n][m+2][0]*filter_[2]]
-                    row.append(sum(conv))
-                except IndexError:
-                    pass             
+            for m in range(M - kernel_size + 1): # iterate over columns
+                conv = [data[n][m][0] * filter_[0], data[n][m+1][0]*filter_[1], data[n][m+2][0]*filter_[2]]
+                row.append(sum(conv))            
             matrix.append(row)
         channels.append(matrix)
     M = np.transpose(np.asarray(channels), (1, 2, 0))
@@ -48,6 +44,7 @@ def conv_1d(data, filters, kernel_size, activation='relu'):
     
     return M
 
+### Note: only valid padding is implemented
 def max_pooling1d(layer, pool_size, strides, padding='valid'):
     assert len(layer.shape) == 3, "Expected input to be 3 dimensional"
     N = layer.shape[0]
@@ -59,12 +56,9 @@ def max_pooling1d(layer, pool_size, strides, padding='valid'):
         matrix = list()
         for n in range(N): # iterate over rows
             row = list()
-            for m in range(M): # iterate over columns
-                try:
-                    val = max(layer[n][m][c], layer[n][m+1][c])
-                    row.append(val)
-                except IndexError:
-                    pass               
+            for m in range(M - pool_size + 1): # iterate over columns
+                val = max(layer[n][m][c], layer[n][m+1][c])
+                row.append(val)             
             matrix.append(row)
         channels.append(matrix)
     print("> Max pooling complete")
@@ -115,7 +109,7 @@ def dense3(layer, activation='softmax'):
 
 def reconstructed_model(Input):
     x = conv_1d(Input, filters=10, kernel_size=3)
-    x = max_pooling1d(x, pool_size=2, strides=1, padding='valid')
+    x = max_pooling1d(x, pool_size=2, strides=1)
     x = flatten(x)
     x = dense1(x)
     x = dense2(x)
