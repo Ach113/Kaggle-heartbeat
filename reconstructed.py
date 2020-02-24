@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from tensorflow.keras.models import load_model
-from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropout
 import tensorflow.keras as keras
 
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
@@ -46,18 +45,18 @@ def conv_1d(data, filters, kernel_size, activation='relu'):
     assert len(data.shape) == 3, "Expected input to be 3 dimensional"
     N = data.shape[0]
     M = data.shape[1]
-    
+    global channels
     channels = list()
     for f in range(filters):
         print("> filter no. ", f+1)
-        filter_ = get_filter()
+        filter_ = get_filter()[:,:,f].T[0]
         matrix = list()
         for n in range(N): # iterate over rows
             row = list()
             for m in range(M): # iterate over columns
                 try:
-                    conv = np.matmul(np.array([data[n][m], data[n][m+1], data[n][m+2]]), filter_)
-                    row.append(np.sum(conv))
+                    conv = [data[n][m][0] * filter_[0], data[n][m+1][0]*filter_[1], data[n][m+2][0]*filter_[2]]
+                    row.append(sum(conv))
                 except IndexError:
                     pass             
             matrix.append(row)
@@ -70,7 +69,7 @@ def conv_1d(data, filters, kernel_size, activation='relu'):
     
     return M
 
-def max_pooling1d(layer, pool_size, strides, padding='same'):
+def max_pooling1d(layer, pool_size, strides, padding='valid'):
     assert len(layer.shape) == 3, "Expected input to be 3 dimensional"
     N = layer.shape[0]
     M = layer.shape[1]
@@ -95,16 +94,15 @@ def max_pooling1d(layer, pool_size, strides, padding='same'):
 def flatten(layer):
     assert len(layer.shape) == 3, "Expected input to be 3 dimensional"
     batch = layer.shape[0]
+    columns = layer.shape[1]
     channels = layer.shape[2]
     
-    matrix = list()
+    matrix=list()
     for b in range(batch):
         row = list()
-        for c in range(channels):
-            if c==0:
-                row = layer[b,:,c]
-            else:
-                row = np.concatenate((row, layer[b,:,c]), axis=0)
+        for i in range(columns):
+            for c in range(channels):
+                row.append(layer[b,i,c])
         matrix.append(row)
     print("> Flattening complete")
     return np.array(matrix)
@@ -149,7 +147,7 @@ def dense3(layer, activation='relu'):
 
 def reconstructed_model(Input):
     x = conv_1d(Input, filters=10, kernel_size=3)
-    x = max_pooling1d(x, pool_size=2, strides=1, padding='same')
+    x = max_pooling1d(x, pool_size=2, strides=1, padding='valid')
     x = flatten(x)
     x = dense1(x)
     x = dense2(x)
@@ -169,15 +167,9 @@ y_test = keras.utils.to_categorical(y)
 
 print("> starting prediction")
 print(f"> Validation data shape: {X_test.shape}")
+
 prediction = reconstructed_model(X_test)
-
-y_pred = [np.argmax(x) for x in prediction]
-y_dense = [np.argmax(x) for x in y_test]
-
-evaluate_model(y_pred, y_dense)
-
-# keras model
-prediction = saved_model.predict(X_test)
+print("> Prediction complete")
 
 y_pred = [np.argmax(x) for x in prediction]
 y_dense = [np.argmax(x) for x in y_test]
