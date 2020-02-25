@@ -229,9 +229,9 @@ Eigen::MatrixXd flatten(Tensor x)
 	for (unsigned int b = 0; b < batch; b++)
 	{
 		std::vector<double> row;
-		for (unsigned int c = 0; c < channels; c++)
+		for (unsigned int i = 0; i < columns; i++)		
 		{
-			for (unsigned int i = 0; i < columns; i++)
+			for (unsigned int c = 0; c < channels; c++)
 			{
 				row.push_back(x[c][b][i]);
 			}			
