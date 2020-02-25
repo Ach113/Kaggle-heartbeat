@@ -51,7 +51,7 @@ Eigen::MatrixXd get_weight2()
 	return f;
 }
 
-// weight for second dense layer
+// weight for third dense layer
 Eigen::MatrixXd get_weight3()
 {
 	Eigen::MatrixXd f;
