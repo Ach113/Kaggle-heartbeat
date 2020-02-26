@@ -3,7 +3,10 @@
 #include <vector>
 #include <Eigen/Dense>
 
-typedef Eigen::Matrix<double, 10, 3> Filter; // filter used for convolution
+#include <chrono> 
+using namespace std::chrono;
+
+typedef Eigen::Matrix<double, 10, 3> Filter; 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Layer;
 typedef std::vector<std::vector<std::vector<double>>> Tensor;
 
@@ -22,7 +25,7 @@ Filter get_filter()
 }
 
 // weight for first dense layer
-Eigen::MatrixXd get_weight1()
+Layer get_weight1()
 {
 	Eigen::MatrixXd f;
 	f.resize(1840, 64);
@@ -37,7 +40,7 @@ Eigen::MatrixXd get_weight1()
 }
 
 // weight for second dense layer
-Eigen::MatrixXd get_weight2()
+Layer get_weight2()
 {
 	Eigen::MatrixXd f;
 	f.resize(64, 32);
@@ -51,8 +54,8 @@ Eigen::MatrixXd get_weight2()
 	return f;
 }
 
-// weight for third dense layer
-Eigen::MatrixXd get_weight3()
+// weight for second dense layer
+Layer get_weight3()
 {
 	Eigen::MatrixXd f;
 	f.resize(32, 5);
@@ -72,7 +75,7 @@ Eigen::VectorXd get_bias1()
 	f.resize(64);
 	std::ifstream file("../weights/weight_3.txt");
 
-	for (unsigned int i = 0; i < 64; i++)  file >> f(i);
+	for (unsigned int i = 0; i < 64; i++) file >> f(i);
 
 	return f;
 }
@@ -135,10 +138,12 @@ Eigen::MatrixXd relu(Layer x)
 	return x;
 }
 
-double max(Layer x)
+Eigen::VectorXd max(Layer x)
 {
 	int I = x.rows(); int J = x.cols();
 	double m = -1.0;
+	Eigen::VectorXd V;
+	V.resize(5);
 	for (unsigned int i = 0; i < I; i++)
 	{
 		for (unsigned int j = 0; j < J; j++)
@@ -146,15 +151,29 @@ double max(Layer x)
 			if (x(i, j) > m) m = x(i, j);
 		}
 	}
-	return m;
+	V << m, m, m, m, m;
+	
+	return V;
 }
 
-// BROKEN; NEEDS TO BE FIXED
+Eigen::VectorXd exp(Eigen::VectorXd V)
+{
+	//int n = V.size();
+	for (unsigned int i = 0; i < 5; i++)
+	{
+		V[i] = std::exp(V[i]);
+	}
+	std::cout << V << std::endl;
+	return V;
+}
+
+// softmax activation for final layer
 Eigen::MatrixXd softmax(Layer x)
 {
-	double m = max(x);
-	for (int f = 0; f < x.rows(); f++)
-		x(f) = exp(x(f) - m);
+	Eigen::VectorXd m = max(x);
+	for (int f = 0; f < x.rows(); f++) {
+		x.row(f) = exp(x.row(f) - m.transpose());
+	}
 	x /= x.sum();
 	return x;
 }
@@ -216,7 +235,7 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 }
 
 // turns 3-dimensional tensor into 2-dimensional Eigen matrix
-Eigen::MatrixXd flatten(Tensor x)
+Layer flatten(Tensor x)
 {
 	int channels = x.size(); // always 10
 	int batch = x[0].size(); // varies
@@ -229,7 +248,7 @@ Eigen::MatrixXd flatten(Tensor x)
 	for (unsigned int b = 0; b < batch; b++)
 	{
 		std::vector<double> row;
-		for (unsigned int i = 0; i < columns; i++)		
+		for (unsigned int i = 0; i < columns; i++)
 		{
 			for (unsigned int c = 0; c < channels; c++)
 			{
@@ -250,66 +269,63 @@ Eigen::MatrixXd flatten(Tensor x)
 	return matrix;
 }
 
-Eigen::MatrixXd dense1(Layer x)
+Layer dense1(Layer x)
 {
 	x = x * get_weight1();
 	int I = x.rows(); int J = x.cols();
 	Eigen::VectorXd b = get_bias1().transpose();
 	for (int i = 0; i < I; i++)
 	{
-		for (int j = 0; j < J; j++)
-		{
-			x(i, j) += b(j);
-		}
+		x.row(i) += b;
 	}
 	std::cout << "> Dense 1 complete" << std::endl;
 	return relu(x);
 }
 
-Eigen::MatrixXd dense2(Layer x)
+Layer dense2(Layer x)
 {
 	x = x * get_weight2();
 	int I = x.rows(); int J = x.cols();
 	Eigen::VectorXd b = get_bias2().transpose();
 	for (int i = 0; i < I; i++)
 	{
-		for (int j = 0; j < J; j++)
-		{
-			x(i, j) += b(j);
-		}
+		x.row(i) += b;
 	}
 	std::cout << "> Dense 2 complete" << std::endl;
 	return relu(x);
 }
 
-Eigen::MatrixXd dense3(Layer x)
+Layer dense3(Layer x)
 {
 	x = x * get_weight3();
 	int I = x.rows(); int J = x.cols();
 	Eigen::VectorXd b = get_bias3().transpose();
 	for (int i = 0; i < I; i++)
 	{
-		for (int j = 0; j < J; j++)
-		{
-			x(i, j) += b(j);
-		}
+		x.row(i) += b;
 	}
 	std::cout << "> Dense 3 complete" << std::endl;
-	return (x);
+	return softmax(x);
 }
 
 
 int main()
 {
-	Eigen::MatrixXd input = Eigen::MatrixXd::Zero(100, 187); // random input for testing
+	Eigen::MatrixXd input = Eigen::MatrixXd::Ones(10, 187); // random input for testing
 
-	Tensor x; Eigen::MatrixXd m;
+	Tensor x; Layer m;
 
+	auto start = high_resolution_clock::now();
+	
 	x = conv_1d(input, 10, 3);
 	x = max_pooling1d(x, 2, 1);
 	m = flatten(x);
 	m = dense1(m);
 	m = dense2(m);
 	m = dense3(m);
+	
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<seconds>(stop - start);
+	std::cout << "Elapsed time: " << duration.count() << std::endl;
 	std::cout << m << std::endl;
 }
