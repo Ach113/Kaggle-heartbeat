@@ -168,7 +168,7 @@ Eigen::VectorXd exp(Eigen::VectorXd V)
 }
 
 // softmax activation for final layer
-Eigen::MatrixXd softmax(Layer x)
+Layer softmax(Layer x)
 {
 	Eigen::VectorXd m = max(x);
 	for (int f = 0; f < x.rows(); f++) {
