@@ -16,11 +16,9 @@ Filter get_filter()
 	Filter f;
 	std::ifstream file("../weights/weight_1.txt");
 
-	for (unsigned int i = 0; i < 10; i++) {
-		for (unsigned int j = 0; j < 3; j++) {
+	for (unsigned int i = 0; i < 10; i++) 
+		for (unsigned int j = 0; j < 3; j++) 
 			file >> f(i, j);
-		}
-	}
 	return f;
 }
 
@@ -71,15 +69,9 @@ void relu_3d(Tensor& x)
 
 	Tensor y;
 	for (unsigned int c = 0; c < channels; c++)
-	{
 		for (unsigned int i = 0; i < rows; i++)
-		{
 			for (unsigned int j = 0; j < cols; j++)
-			{
 				if (x[c][i][j] < 0) x[c][i][j] = 0;
-			}
-		}
-	}
 }
 
 // ReLU activation function
@@ -107,9 +99,8 @@ Eigen::VectorXd max(Layer x)
 	return V;
 }
 
-Eigen::VectorXd Exp(Eigen::VectorXd V)
+Eigen::VectorXd exp(Eigen::VectorXd V)
 {
-	//int n = V.size();
 	for (unsigned int i = 0; i < 5; i++)
 		V[i] = std::exp(V[i]);
 	return V;
@@ -121,7 +112,7 @@ void softmax(Layer& x)
 	Eigen::VectorXd m = max(x);
 
 	for (int f = 0; f < x.rows(); f++)
-		x.row(f) = Exp(x.row(f) - m.transpose());
+		x.row(f) = exp(x.row(f) - m.transpose());
 	x /= x.sum();
 }
 
@@ -175,7 +166,7 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 }
 
 // turns 3-dimensional tensor into 2-dimensional Eigen matrix
-Layer flatten(Tensor x)
+inline Layer flatten(Tensor x)
 {
 	int channels = x.size(); // always 10
 	int batch = x[0].size(); // varies
@@ -186,17 +177,18 @@ Layer flatten(Tensor x)
 
 	for (unsigned int b = 0; b < batch; b++) {
 		int k = 0;
-		for (unsigned int i = 0; i < columns; i++)
+		for (unsigned int i = 0; i < columns; i++) {
 			for (unsigned int c = 0; c < channels; c++) {
 				matrix(b, k) = x[c][b][i];
 				++k;
-			}			
+			}
+		}
 	}
 	std::cout << "> Flattening complete" << std::endl;
 	return matrix;
 }
 
-inline void dense1(Layer& x)
+void dense1(Layer& x)
 {
 	x *= W1;
 	int I = x.rows();
@@ -231,24 +223,21 @@ void dense3(Layer& x)
 
 int main()
 {
-	Eigen::MatrixXd input = Eigen::MatrixXd::Ones(100, 187); // random input for testing
+	Eigen::MatrixXd input = Eigen::MatrixXd::Ones(21000, 187); // input for testing
 
 	Tensor x; Layer m;
 	
 	auto start = high_resolution_clock::now();
-	x = conv_1d(input, 10, 3);
-	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<seconds>(stop - start);
-	std::cout << "Elapsed time: " << duration.count() << std::endl;
 
+	x = conv_1d(input, 10, 3);
 	x = max_pooling1d(x, 2, 1);
 	m = flatten(x);
 	dense1(m);
 	dense2(m);
 	dense3(m);
 
-	stop = high_resolution_clock::now();
-	duration = duration_cast<seconds>(stop - start);
-	std::cout << "Elapsed time: " << duration.count() << std::endl;
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<seconds>(stop - start);
+	std::cout << "$> Batch size: " << input.rows() << ", Elapsed time: " << duration.count() << " seconds" << std::endl;
 	std::cout << m.row(0) << std::endl;
 }
