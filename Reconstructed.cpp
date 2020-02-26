@@ -71,15 +71,9 @@ void relu_3d(Tensor& x)
 
 	Tensor y;
 	for (unsigned int c = 0; c < channels; c++)
-	{
 		for (unsigned int i = 0; i < rows; i++)
-		{
 			for (unsigned int j = 0; j < cols; j++)
-			{
 				if (x[c][i][j] < 0) x[c][i][j] = 0;
-			}
-		}
-	}
 }
 
 // ReLU activation function
