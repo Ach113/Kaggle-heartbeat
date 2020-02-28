@@ -3,7 +3,7 @@ Classification of ECG dataset found on Kaggle using Keras convolutional neural n
 
 Model is saved after training and then reconstructed using self-made functions. Model is simplified in order to avoid overly complicated structure, as it is intended for lower-level implementation.
 # Data:
-![ecg_data](https://i.imgur.com/VSMzysq.png)
+![ecg_data](https://i.imgur.com/GD3w05p.png)
 
 # Data denoised through Autoencoder:
 ![denoised](https://i.imgur.com/YC5qzxR.png) ![denoised2](https://i.imgur.com/yHy4odw.png)
