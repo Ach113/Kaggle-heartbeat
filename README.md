@@ -6,7 +6,7 @@ Model is saved after training and then reconstructed using self-made functions. 
 ![ecg_data](https://i.imgur.com/VSMzysq.png)
 
 # Data denoised through Autoencoder:
-![denoised](https://i.imgur.com/YC5qzxR.png)
+![denoised](https://i.imgur.com/YC5qzxR.png) ![denoised2](https://i.imgur.com/yHy4odw.png)
 
 # Models performance:
 ![Confusion_Matrix](https://i.imgur.com/KvFeV85.png)
