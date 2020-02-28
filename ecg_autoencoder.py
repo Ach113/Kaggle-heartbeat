@@ -13,19 +13,23 @@ import matplotlib.pyplot as plt
 ekg_data = wfdb.rdsamp('100', sampto=300000)[0]
 ekg_data = ekg_data.transpose()[0]
 
+noisy_data = wfdb.rdsamp('118e00', sampto=300000)[0]
+noisy_data = noisy_data.transpose()[0]
+
 samples = 300
 
-def plot_results(true_signal, reconstructed_signal, title):
+def plot_results(true_signal, reconstructed_signal, n=None):
     fig, axs = plt.subplots(nrows=3, figsize=(6, 4))
     for ax in axs:
-        n = random.randrange(len(x_train))
+        if n is None:
+            n = random.randrange(len(x_train))
         ax.plot(true_signal[n], label='real')
         ax.plot(reconstructed_signal[n], label='reconstructed')
         ax.plot(reconstructed_signal[n] - true_signal[n], label='error', color='red')
         handles, labels = ax.get_legend_handles_labels()
         fig.legend(handles, labels, loc='lower left')
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.suptitle(title)
+    fig.suptitle('Comparison of real and reconstructed signals')
 
 
 def autoencoder(data_in):
@@ -60,4 +64,4 @@ model.fit(x_train, x_train, epochs=10)
 
 x = model.predict(x_train)
 
-plot_results(x_train, x, title='Comparison of real and reconstructed signals')
+plot_results(100*x_train, 100*x)
