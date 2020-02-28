@@ -18,11 +18,10 @@ noisy_data = noisy_data.transpose()[0]
 
 samples = 300
 
-def plot_results(true_signal, reconstructed_signal, n=None):
+def plot_results(true_signal, reconstructed_signal):
     fig, axs = plt.subplots(nrows=3, figsize=(6, 4))
     for ax in axs:
-        if n is None:
-            n = random.randrange(len(x_train))
+        n = random.randrange(len(x_train))
         ax.plot(true_signal[n], label='real')
         ax.plot(reconstructed_signal[n], label='reconstructed')
         ax.plot(reconstructed_signal[n] - true_signal[n], label='error', color='red')
