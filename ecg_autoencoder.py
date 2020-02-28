@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import struct
+import wfdb, random
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.layers import Input, Conv1D, MaxPooling1D, UpSampling1D
@@ -11,23 +11,13 @@ import tensorflow.keras as keras
 
 import matplotlib.pyplot as plt
 
-def read_ekg_data(input_file):
-    """
-    Read the EKG data from the given file.
-    """
-    with open(input_file, 'rb') as input_file:
-        data_raw = input_file.read()
-    n_bytes = len(data_raw)
-    n_shorts = n_bytes/2
+ekg_data = wfdb.rdsamp('100', sampto=300000)[0]
+ekg_data = ekg_data.transpose()[0]
 
-    unpack_string = '<%dh' % n_shorts
-    
-    data_shorts = np.array(struct.unpack(unpack_string, data_raw)).astype(float)
-    return data_shorts
+noisy_data = wfdb.rdsamp('118e00', sampto=300000)[0]
+noisy_data = noisy_data.transpose()[0]
 
-ekg_data = read_ekg_data('a02.dat')
-print(ekg_data.shape) # (3182000,)
-samples = 500
+samples = 300
 
 def autoencoder(data_in):
     # Encoder:
@@ -48,10 +38,18 @@ def autoencoder(data_in):
 x_train = []
 for i in range(0, ekg_data.shape[0]-samples, samples):
     x_train.append(ekg_data[i:i+samples])
+    
+x_noise = []
+for i in range(0, noisy_data.shape[0]-samples, samples):
+    x_noise.append(noisy_data[i:i+samples])
 
 x_train = np.array(x_train)
 x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_train = keras.utils.normalize(x_train, axis=1)
+
+x_noise = np.array(x_noise)
+x_noise = x_noise.reshape(x_noise.shape[0], x_noise.shape[1], 1)
+x_noise = keras.utils.normalize(x_noise, axis=1)
 
 train_x, valid_x, train_ground, valid_ground = train_test_split(x_train,
                                                              x_train, 
@@ -61,12 +59,20 @@ data_in = Input(shape=(train_x.shape[1], 1))
 model = Model(data_in, autoencoder(data_in))
 model.compile(loss='mean_squared_error', optimizer=RMSprop())
 
-model.fit(train_x, train_ground, validation_data=(valid_x, valid_ground), epochs=5)
+model.fit(x_train, x_train, epochs=10)
 
+n = random.randrange(len(x_train))
 x = model.predict(x_train)
 
 fig, ax = plt.subplots()
 ax.plot(x_train[88], label='real signal')
 ax.plot(x[88], label='reconstructed signal')
+ax.plot(abs(x[88] - x_train[88]), label='error signal', color='red')
 ax.legend()
 
+denoised = model.predict(x_noise)
+
+fig, ax = plt.subplots()
+ax.plot(x_noise[88], label='noisy signal')
+ax.plot(denoised[88], label='denoised signal')
+ax.legend()
