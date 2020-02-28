@@ -10,14 +10,6 @@ import tensorflow.keras as keras
 
 import matplotlib.pyplot as plt
 
-ekg_data = wfdb.rdsamp('100', sampto=300000)[0]
-ekg_data = ekg_data.transpose()[0]
-
-noisy_data = wfdb.rdsamp('118e00', sampto=300000)[0]
-noisy_data = noisy_data.transpose()[0]
-
-samples = 300
-
 def plot_results(true_signal, reconstructed_signal):
     fig, axs = plt.subplots(nrows=3, figsize=(6, 4))
     for ax in axs:
@@ -43,9 +35,14 @@ def autoencoder(data_in):
     x = UpSampling1D(2)(x)
     x = Conv1D(64, kernel_size=3, padding='same', activation='relu')(x)
     x = UpSampling1D(2)(x)
-    data_out = Conv1D(1, kernel_size=3, padding='same', activation='tanh')(x)
+    data_out = Conv1D(1, kernel_size=2, padding='valid', activation='tanh')(x)
     
     return data_out
+
+ekg_data = wfdb.rdsamp('Data/100')[0]
+ekg_data = ekg_data.transpose()[0]
+
+samples = 255
 
 x_train = []
 for i in range(0, ekg_data.shape[0]-samples, samples):
@@ -56,11 +53,13 @@ x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
 x_train = keras.utils.normalize(x_train, axis=1)
 
 data_in = Input(shape=(x_train.shape[1], 1))
-model = Model(data_in, autoencoder(data_in))
-model.compile(loss='mean_squared_error', optimizer=RMSprop())
+DAE = Model(data_in, autoencoder(data_in))
+DAE.compile(loss='mean_squared_error', optimizer=RMSprop())
 
-model.fit(x_train, x_train, epochs=10)
+DAE.fit(x_train, x_train, epochs=10)
 
-x = model.predict(x_train)
+x = DAE.predict(x_train)
+x = x.reshape(x.shape[0], x.shape[1])
 
 plot_results(100*x_train, 100*x)
+error = abs(x - x_train)
