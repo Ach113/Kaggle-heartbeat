@@ -315,10 +315,62 @@ void dense3(Layer& x)
 	softmax(x);
 }
 
+// test data and evaluation
+
+// returns input matrix of shape (21891, 187)
+Eigen::MatrixXd get_X()
+{
+	Eigen::MatrixXd X;
+	X.resize(21891, 187);
+
+	std::ifstream file("../weights/X.txt");
+
+	for (unsigned int i = 0; i < 21891; i++) {
+		for (unsigned int j = 0; j < 187; j++) {
+			file >> X(i, j);
+		}
+	}
+	return X;
+}
+
+// returns target vector of size 21891
+Eigen::VectorXd get_y()
+{
+	Eigen::VectorXd y;
+	y.resize(21891);
+
+	std::string path = "../weights/y.txt";
+	std::ifstream file(path);
+
+	for (unsigned int i = 0; i < 21891; i++)
+		file >> y(i);
+
+	return y.transpose();
+}
+
+double accuracy_score(Layer y_pred, Eigen::VectorXd y_true)
+{
+	double score = 0.0;
+	int batch = y_pred.rows();
+	int cols = y_pred.cols();
+	for (unsigned int i = 0; i < batch; i++) {
+		int predicted;
+		double m = y_pred.row(i).maxCoeff();
+		for (unsigned int j = 0; j < cols; j++) {
+			if (y_pred(i, j) == m)
+				predicted = j;
+		}
+		if (predicted == y_true(i))
+			score += 1;
+	}
+	return score / batch;
+}
+
 
 int main()
 {
-	Eigen::MatrixXd input = Eigen::MatrixXd::Zero(10000, 187); // input for testing
+	//Eigen::MatrixXd input = Eigen::MatrixXd::Random(1000, 187); // input for testing
+	Eigen::MatrixXd input = get_X(); Eigen::VectorXd y = get_y();
 	Eigen::MatrixXd filter1 = get_filter1();
 	Tensor filter2 = get_filter2();
 
@@ -337,5 +389,5 @@ int main()
 	auto stop = high_resolution_clock::now();
 	auto duration = duration_cast<seconds>(stop - start);
 	std::cout << "\n$> Batch size: " << input.rows() << ", Elapsed time: " << duration.count() << " seconds" << std::endl;
-	std::cout << m.row(0) << std::endl;
+	std::cout << "Accuracy: " << accuracy_score(m, y) << std::endl;
 }
