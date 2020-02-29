@@ -11,14 +11,63 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Layer;
 typedef std::vector<std::vector<std::vector<double>>> Tensor;
 
 // returns a filter matrix of shape (10, 3)
-Filter get_filter()
+Filter get_filter1()
 {
 	Filter f;
-	std::ifstream file("../weights/weight_1.txt");
+	std::ifstream file("../weights/filter1.txt");
 
-	for (unsigned int i = 0; i < 10; i++) 
-		for (unsigned int j = 0; j < 3; j++) 
+	for (unsigned int i = 0; i < 10; i++) {
+		for (unsigned int j = 0; j < 3; j++) {
 			file >> f(i, j);
+		}
+	}
+	return f;
+}
+
+// returns tensor of shape (3, 10, 5)
+Tensor get_filter2()
+{
+	Tensor f;
+	std::ifstream file1("../weights/filter2_1.txt");
+	std::ifstream file2("../weights/filter2_2.txt");
+	std::ifstream file3("../weights/filter2_3.txt");
+
+	std::vector<std::vector<double>> temp;
+	for (unsigned int i = 0; i < 10; i++) {
+		std::vector<double> t; double x;
+		t.reserve(5);
+		for (unsigned int j = 0; j < 5; j++) {
+			file1 >> x;
+			t.push_back(x);
+		}
+		temp.push_back(t);
+	}
+	f.push_back(temp);
+
+	temp = std::vector<std::vector<double>>();
+	for (unsigned int i = 0; i < 10; i++) {
+		std::vector<double> t;
+		t.reserve(5); double x;
+		for (unsigned int j = 0; j < 5; j++) {
+			file2 >> x;
+			t.push_back(x);
+		}
+		temp.push_back(t);
+	}
+	f.push_back(temp);
+
+	temp = std::vector<std::vector<double>>();
+	for (unsigned int i = 0; i < 10; i++) {
+		std::vector<double> t; double x;
+		t.reserve(5);
+		for (unsigned int j = 0; j < 5; j++) {
+			file3 >> x;
+			t.push_back(x);
+		}
+		temp.push_back(t);
+	}
+	f.push_back(temp);
+
 	return f;
 }
 
@@ -27,7 +76,7 @@ Layer get_weight(int n, int row, int col)
 	Eigen::MatrixXd f;
 	f.resize(row, col);
 
-	std::string path = "../weights/weight_" + std::to_string(n) + ".txt";
+	std::string path = "../weights/weight" + std::to_string(n) + ".txt";
 	std::ifstream file(path);
 
 	for (unsigned int i = 0; i < row; i++) 
@@ -41,7 +90,7 @@ Eigen::VectorXd get_bias(int n, int col)
 	Eigen::VectorXd f;
 	f.resize(col);
 
-	std::string path = "../weights/weight_" + std::to_string(n) + ".txt";
+	std::string path = "../weights/bias" + std::to_string(n) + ".txt";
 	std::ifstream file(path);
 
 	for (unsigned int i = 0; i < col; i++)
@@ -50,15 +99,13 @@ Eigen::VectorXd get_bias(int n, int col)
 	return f;
 }
 
-Filter F = get_filter();
+Layer W1 = get_weight(1, 935, 64);
+Layer W2 = get_weight(2, 64, 32);
+Layer W3 = get_weight(3, 32, 5);
 
-Layer W1 = get_weight(2, 1840, 64);
-Layer W2 = get_weight(4, 64, 32);
-Layer W3 = get_weight(6, 32, 5);
-
-Eigen::VectorXd b1 = get_bias(3, 64).transpose();
-Eigen::VectorXd b2 = get_bias(5, 32).transpose();
-Eigen::VectorXd b3 = get_bias(7, 5).transpose();
+Eigen::VectorXd b1 = get_bias(1, 64).transpose();
+Eigen::VectorXd b2 = get_bias(2, 32).transpose();
+Eigen::VectorXd b3 = get_bias(3, 5).transpose();
 
 // ReLU activation for conv_1d
 void relu_3d(Tensor& x)
@@ -116,8 +163,8 @@ void softmax(Layer& x)
 	x /= x.sum();
 }
 
-// is expected to return a tensor of shape (10, batch_size, 185)
-Tensor conv_1d(Layer input, int filters, int kernel_size)
+// is expected to return a tensor of shape (10, batch_size, 187) (same padding)
+Tensor conv_1d(Layer input, int filters, int kernel_size, Filter F)
 {
 	int batch = input.rows();
 	int col = input.cols();
@@ -128,20 +175,66 @@ Tensor conv_1d(Layer input, int filters, int kernel_size)
 		for (unsigned int j = 0; j < batch; j++) {		
 			std::vector<double> row;
 			for (unsigned int c = 0; c < col - kernel_size + 1; c++) {
-				double conv = F(i, 0) * input(j, c) + F(i, 1) * input(j, c+1) + F(i, 2) * input(j, c+2);
+				double conv;
+				if (c == 0) {
+					conv = F(i, 1) * input(j, c + 1) + F(i, 2) * input(j, c + 2);
+					row.push_back(conv);
+				}
+				conv = F(i, 0) * input(j, c) + F(i, 1) * input(j, c+1) + F(i, 2) * input(j, c+2);
 				row.push_back(conv);
+				if (c == col - kernel_size) {
+					conv = F(i, 0) * input(j, c) + F(i, 1) * input(j, c + 1);
+					row.push_back(conv);
+				}
 			}
 			Matrix.push_back(row);
 		}
 		conv_1d_output.push_back(Matrix); 
 	}
-	std::cout << "> Convolution complete" << std::endl;
+	std::cout << "> Convolution 1 complete" << std::endl;
 	relu_3d(conv_1d_output);
 
 	return conv_1d_output;
 }
 
-// is expected to return tensor of shape (10, batch_size, 184)
+// returns tensor of shape (5, batch_size, 187)
+Tensor conv_1d(Tensor input, int filters, int kernel_size, Tensor Filter)
+{
+	int channels = input.size();
+	int batch = input[0].size();
+	int columns = input[0][0].size();
+	Tensor conv_1d_output;
+
+	for (unsigned int f = 0; f < filters; f++) {
+		std::vector<std::vector<double>> Matrix;
+		for (unsigned int i = 0; i < batch; i++) {
+			std::vector<double> row;
+			for (unsigned int j = 0; j < columns - kernel_size + 1; j++) {
+				double conv = 0, pad1 = 0, pad2 = 0;
+				for (unsigned int c = 0; c < channels; c++) {
+					if (j == 0)
+						pad1 += input[c][i][j + 1] * Filter[1][c][f] + input[c][i][j + 2] * Filter[2][c][f];
+					if (j == columns - kernel_size)
+						pad2 += input[c][i][j] * Filter[0][c][f] + input[c][i][j + 1] * Filter[1][c][f];
+					conv += input[c][i][j] * Filter[0][c][f] + input[c][i][j + 1] * Filter[1][c][f] + input[c][i][j + 2] * Filter[2][c][f];
+				}
+				if (j == 0)
+					row.push_back(pad1);
+				row.push_back(conv);
+				if (j == columns - kernel_size)
+					row.push_back(pad2);
+			}
+			Matrix.push_back(row);
+		}
+		conv_1d_output.push_back(Matrix);
+	}
+	std::cout << "> Convolution 2 complete" << std::endl;
+	relu_3d(conv_1d_output);
+
+	return conv_1d_output;
+}
+
+// is expected to return tensor of shape (10, batch_size, 187) (same padding)
 Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 {	
 	int channels = x.size();
@@ -156,6 +249,8 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 			for (unsigned int i = 0; i < columns - pool_size + 1; i++) {
 				double val = (x[c][b][i] > x[c][b][i + 1]) ? x[c][b][i] : x[c][b][i + 1];
 				row.push_back(val);
+				if (i == columns - 1)
+					row.push_back(x[c][b][i]);
 			}
 			matrix.push_back(row);
 		}
@@ -166,7 +261,7 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 }
 
 // turns 3-dimensional tensor into 2-dimensional Eigen matrix
-inline Layer flatten(Tensor x)
+Layer flatten(Tensor x)
 {
 	int channels = x.size(); // always 10
 	int batch = x[0].size(); // varies
@@ -223,13 +318,16 @@ void dense3(Layer& x)
 
 int main()
 {
-	Eigen::MatrixXd input = Eigen::MatrixXd::Ones(21000, 187); // input for testing
+	Eigen::MatrixXd input = Eigen::MatrixXd::Zero(10000, 187); // input for testing
+	Filter filter1 = get_filter1();
+	Tensor filter2 = get_filter2();
 
 	Tensor x; Layer m;
 	
 	auto start = high_resolution_clock::now();
 
-	x = conv_1d(input, 10, 3);
+	x = conv_1d(input, 10, 3, filter1);
+	x = conv_1d(x, 5, 3, filter2);
 	x = max_pooling1d(x, 2, 1);
 	m = flatten(x);
 	dense1(m);
@@ -238,6 +336,6 @@ int main()
 
 	auto stop = high_resolution_clock::now();
 	auto duration = duration_cast<seconds>(stop - start);
-	std::cout << "$> Batch size: " << input.rows() << ", Elapsed time: " << duration.count() << " seconds" << std::endl;
+	std::cout << "\n$> Batch size: " << input.rows() << ", Elapsed time: " << duration.count() << " seconds" << std::endl;
 	std::cout << m.row(0) << std::endl;
 }
