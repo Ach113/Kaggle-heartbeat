@@ -59,7 +59,9 @@ DAE.compile(loss='mean_squared_error', optimizer=RMSprop())
 DAE.fit(x_train, x_train, epochs=10)
 
 x = DAE.predict(x_train)
+
 x = x.reshape(x.shape[0], x.shape[1])
+x_train = x_train.reshape(x_train.shape[0], x_train.shape[1])
 
 plot_results(100*x_train, 100*x)
 error = abs(x - x_train)
