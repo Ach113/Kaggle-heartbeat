@@ -6,14 +6,14 @@
 #include <chrono> 
 using namespace std::chrono;
 
-typedef Eigen::Matrix<double, 10, 3> Filter; // filter used for convolution
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> Layer;
 typedef std::vector<std::vector<std::vector<double>>> Tensor;
 
 // returns a filter matrix of shape (10, 3)
-Filter get_filter1()
+Eigen::MatrixXd get_filter1()
 {
-	Filter f;
+	Eigen::MatrixXd f;
+	f.resize(10, 3);
 	std::ifstream file("../weights/filter1.txt");
 
 	for (unsigned int i = 0; i < 10; i++) {
@@ -164,7 +164,7 @@ void softmax(Layer& x)
 }
 
 // is expected to return a tensor of shape (10, batch_size, 187) (same padding)
-Tensor conv_1d(Layer input, int filters, int kernel_size, Filter F)
+Tensor conv_1d(Layer input, int filters, int kernel_size, Eigen::MatrixXd F)
 {
 	int batch = input.rows();
 	int col = input.cols();
@@ -261,7 +261,7 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 }
 
 // turns 3-dimensional tensor into 2-dimensional Eigen matrix
-Layer flatten(Tensor x)
+inline Layer flatten(Tensor x)
 {
 	int channels = x.size(); // always 10
 	int batch = x[0].size(); // varies
@@ -319,7 +319,7 @@ void dense3(Layer& x)
 int main()
 {
 	Eigen::MatrixXd input = Eigen::MatrixXd::Zero(10000, 187); // input for testing
-	Filter filter1 = get_filter1();
+	Eigen::MatrixXd filter1 = get_filter1();
 	Tensor filter2 = get_filter2();
 
 	Tensor x; Layer m;
