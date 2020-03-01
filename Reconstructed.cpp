@@ -260,6 +260,29 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 	return pooling_output;
 }
 
+// upsampling layer, returns tensor of shape (channels, batch_size, 2*colums) from input tensor (channels, batch_size, columns)
+Tensor upsampling_1d(Tensor x, int size)
+{
+	int channels = x.size();
+	int batch = x[0].size();
+	int columns = x[0][0].size();
+
+	Tensor out;
+	for (unsigned int c = 0; c < channels; c++) {
+		std::vector<std::vector<double>> matrix;
+		for (unsigned int b = 0; b < batch; b++) {
+			std::vector<double> row;
+			for (unsigned int i = 0; i < columns; i++) {
+				for (unsigned int s = 0; s < size; s++)
+					row.push_back(x[c][b][i]);
+			}
+			matrix.push_back(row);
+		}
+		out.push_back(matrix);
+	}
+	return out;
+}
+
 // turns 3-dimensional tensor into 2-dimensional Eigen matrix
 inline Layer flatten(Tensor x)
 {
@@ -315,7 +338,7 @@ void dense3(Layer& x)
 	softmax(x);
 }
 
-// test data and evaluation
+/*** test data and evaluation ***/
 
 // returns input matrix of shape (21891, 187)
 Eigen::MatrixXd get_X()
@@ -365,7 +388,6 @@ double accuracy_score(Layer y_pred, Eigen::VectorXd y_true)
 	}
 	return score / batch;
 }
-
 
 int main()
 {
