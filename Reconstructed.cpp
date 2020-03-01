@@ -260,7 +260,7 @@ Tensor max_pooling1d(Tensor x, int pool_size, int strides)
 	return pooling_output;
 }
 
-// upsampling layer, returns tensor of shape (channels, batch_size, 2*colums) from input tensor (channels, batch_size, columns)
+// upsampling layer, returns tensor of shape (channels, batch_size, size*colums) from input tensor (channels, batch_size, columns)
 Tensor upsampling_1d(Tensor x, int size)
 {
 	int channels = x.size();
